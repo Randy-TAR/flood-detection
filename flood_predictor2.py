@@ -39,3 +39,4 @@ def predict_flood_from_weather(weather_df: pd.DataFrame) -> pd.DataFrame:
         print(f"{row['city']} ({row['time_label']}): ({row['weather_id']}) {row['weather_desc']} — {row['rain_mm']}mm — {row['temp']}°C | {row['risk_predict']} (prob={row['flood_prob']})")
 
     return weather_df
+

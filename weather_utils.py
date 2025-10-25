@@ -79,3 +79,57 @@ def get_weather_data():
         except Exception as e:
             print(f"❌ Error fetching data for {city}: {e}")
     return pd.DataFrame(data_list)
+
+
+def get_weather_data_by_city(city_name):
+    import pandas as pd
+    import requests
+    from datetime import datetime
+
+    city_name = city_name.strip().title()
+
+    try:
+        # 1️⃣ Step 1: Geocode city name to get lat/lon
+        geo_url = "http://api.openweathermap.org/geo/1.0/direct"
+        geo_params = {"q": city_name, "limit": 1, "appid": API_KEY}
+        geo_response = requests.get(geo_url, params=geo_params, timeout=10).json()
+
+        if not geo_response or "lat" not in geo_response[0]:
+            return {"error": f"City '{city_name}' not found."}
+
+        lat = geo_response[0]["lat"]
+        lon = geo_response[0]["lon"]
+
+        # 2️⃣ Step 2: Fetch weather forecast for city
+        weather_url = "https://api.openweathermap.org/data/2.5/forecast"
+        params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "metric"}
+        data = requests.get(weather_url, params=params, timeout=10).json()
+
+        if "list" not in data or not data["list"]:
+            return {"error": f"No forecast data found for '{city_name}'."}
+
+        # 3️⃣ Step 3: Get closest forecast time
+        forecast = find_closest_forecast(data["list"])
+        rain_mm = forecast.get("rain", {}).get("3h", 0)
+        temp = round(forecast["main"]["temp"])
+        weather_id = forecast["weather"][0]["id"]
+        weather_desc = get_rain_intensity(weather_id)
+        time_label = datetime.fromtimestamp(forecast["dt"]).strftime("%I:%M %p")
+
+        # 4️⃣ Step 4: Format response
+        result = {
+            "city": city_name,
+            "lat": lat,
+            "lon": lon,
+            "rain_mm": round(rain_mm, 2),
+            "temp": temp,
+            "weather_id": weather_id,
+            "weather_desc": weather_desc,
+            "time_label": time_label
+        }
+
+        return result
+
+    except Exception as e:
+        print(f"❌ Error fetching data for {city_name}: {e}")
+        return {"error": f"An unexpected error occurred: {str(e)}"}
